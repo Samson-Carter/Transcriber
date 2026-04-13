@@ -17,7 +17,34 @@ def main():
     # Try to read it
     print(pytesseract.image_to_string(screenshot))
 
+    print("Starting Transcription... Press Ctrl+C to stop and save")
 
+    last_text = ""
+
+    with open("meeting_transcript.txt", "a") as f:
+        try:
+            while True:
+                # 1. Take the screenshot of hte caption area
+                screenshot = pyautogui.screenshot(region=(x, y, w, h))
+
+                # 2. Convert pixels to a string
+                # strip/remove whitespace and newlines
+                current_text = pytesseract.image_to_string(screenshot).strip()
+
+                # 3. Logic: Only record if there is text and it's NEW 
+                if current_text and current_text != last_text:
+                    #check if the new text is just a subset of the old (to handle scrolling)
+                    if current_text not in last_text:
+                        print(f"Captured: {current_text}") #DEBUG REMOVE ONCE WORKING
+                        f.write(current_text + "\n")
+                        f.flush() # Forces the text into the file immeidately
+                        last_text = current_text
+
+                    # Wait a moment before checking again
+                    time.sleep(1.5)
+
+        except KeyboardInterrupt:
+            print("\nITranscription Stopped. File Saved.")
 
 
 def DetermineScreenshotArea():
