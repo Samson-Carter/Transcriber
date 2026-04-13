@@ -1,6 +1,7 @@
 import pyautogui
 import pytesseract
 import time
+import difflib
 
 
 def main():
@@ -14,8 +15,8 @@ def main():
     # Take a screenshot of the top left corner (100x100 pixels)
     screenshot = pyautogui.screenshot(region=(x, y, w, h))
 
-    # Try to read it
-    print(pytesseract.image_to_string(screenshot))
+    # Convert image to Black and White (L stands for Luminance/Grayscsale)
+    screenshot = screenshot.convert('L')
 
     print("Starting Transcription... Press Ctrl+C to stop and save")
 
@@ -24,24 +25,32 @@ def main():
     with open("meeting_transcript.txt", "a") as f:
         try:
             while True:
-                # 1. Take the screenshot of hte caption area
-                screenshot = pyautogui.screenshot(region=(x, y, w, h))
+                # 1. Take the screenshot of the caption area
+                # makes it greyscale for fewer halucinations
+                screenshot = pyautogui.screenshot(region=(x, y, w, h)).convert('L')
 
                 # 2. Convert pixels to a string
                 # strip/remove whitespace and newlines
-                current_text = pytesseract.image_to_string(screenshot).strip()
+                current_raw = pytesseract.image_to_string(screenshot).strip()
 
-                # 3. Logic: Only record if there is text and it's NEW 
-                if current_text and current_text != last_text:
-                    #check if the new text is just a subset of the old (to handle scrolling)
-                    if current_text not in last_text:
-                        print(f"Captured: {current_text}") #DEBUG REMOVE ONCE WORKING
-                        f.write(current_text + "\n")
-                        f.flush() # Forces the text into the file immeidately
-                        last_text = current_text
+                if current_raw:
+                     #Split the captions into individual lines
+                     lines = [line.strip() for line in current_raw.split("\n") if len(line.strip()) > 5]
 
-                    # Wait a moment before checking again
-                    time.sleep(1.5)
+                     if lines:
+                          #Focus specifically on the most recent line of dialogue
+                          latest_line = lines[-1]
+
+                          # 1. Check if it's the same as the last line we saved
+                          # 2. Check for "fuzzy" similarity to avoid near-duplicates
+                          if latest_line != last_text and not is_similar(latest_line, last_text, 0.7):
+                               f.write(latest_line + "\n")
+                               f.flush
+                               last_text = latest_line
+
+            
+                # Wait a moment before checking again
+                time.sleep(1.5)
 
         except KeyboardInterrupt:
             print("\nITranscription Stopped. File Saved.")
@@ -67,10 +76,24 @@ def DetermineScreenshotArea():
     return (top_left.x, top_left.y, width, height)
 
 
+def is_similar(new, old, threshold=0.6):
+     return difflib.SequenceMatcher(None, new, old).ratio > threshold
+
+
 if __name__ == '__main__':
     main()
 
 
 # Updates
 # 1) Code is able to extract the area of the CC space at the launch of the program and read the text taht is within the given space
-# 2) 
+# 2) Can capture the transcript but it is RIDDLED with repitition. Need to work through that. 
+
+
+"""  # 3. Logic: Only record if there is text and it's NEW 
+                if current_text and current_text != last_text:
+                    #check if the new text is just a subset of the old (to handle scrolling)
+                    if current_text not in last_text:
+                        print(f"Captured: {current_text}") #DEBUG REMOVE ONCE WORKING
+                        f.write(current_text + "\n")
+                        f.flush() # Forces the text into the file immeidately
+                        last_text = current_text"""
