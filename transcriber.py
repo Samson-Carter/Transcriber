@@ -18,6 +18,8 @@ def main():
     print(pytesseract.image_to_string(screenshot))
 
 
+
+
 def DetermineScreenshotArea():
     print("Position the mouse at the TOP LEFT corner of the caption area.")
     time.sleep(3) # gives you three seconds to get in position
@@ -40,3 +42,8 @@ def DetermineScreenshotArea():
 
 if __name__ == '__main__':
     main()
+
+
+# Updates
+# 1) Code is able to extract the area of the CC space at the launch of the program and read the text taht is within the given space
+# 2) 
